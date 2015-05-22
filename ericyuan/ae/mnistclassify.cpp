@@ -89,7 +89,7 @@ ReverseInt (int i){
     return((int) ch1 << 24) + ((int)ch2 << 16) + ((int)ch3 << 8) + ch4;
 }
 
-void 
+int 
 read_Mnist(string filename, vector<Mat> &vec){
     ifstream file(filename, ios::binary);
     if (file.is_open()){
@@ -116,10 +116,16 @@ read_Mnist(string filename, vector<Mat> &vec){
             }
             vec.push_back(tpmat);
         }
+        return 1;
+    }
+    else
+    {
+        cout << "ERR: Could not find MNIST file " << filename << "\n";
+        return -1;
     }
 }
 
-void 
+int 
 read_Mnist_Label(string filename, Mat &mat)
 {
     ifstream file(filename, ios::binary);
@@ -137,6 +143,12 @@ read_Mnist_Label(string filename, Mat &mat)
             file.read((char*) &temp, sizeof(temp));
             mat.ATD(0, i) = (double)temp;
         }
+        return 1;
+    }
+    else
+    {
+        cout << "ERR: Could not find MNIST label file " << filename << "\n";
+        return -1;
     }
 }
 
@@ -568,18 +580,25 @@ resultProdict(Mat &x, vector<SA> &hLayers, SMR &smr){
     return result;
 }
 
-void
+int
 readData(Mat &x, Mat &y, string xpath, string ypath, int number_of_images){
 
     //read MNIST iamge into OpenCV Mat vector
     int image_size = 28 * 28;
+    int ret1, ret2;
     vector<Mat> vec;
     //vec.resize(number_of_images, cv::Mat(28, 28, CV_8UC1));
-    read_Mnist(xpath, vec);
+    ret1 = read_Mnist(xpath, vec);
     //read MNIST label into double vector
     y = Mat::zeros(1, number_of_images, CV_64FC1);
-    read_Mnist_Label(ypath, y);
-    x = concatenateMat(vec);
+    ret2 = read_Mnist_Label(ypath, y);
+    if((ret1 < 0) || (ret2 < 0))
+      return -1;
+    else
+    { 
+       x = concatenateMat(vec);
+       return 1;
+    }
 }
 
 int 
@@ -591,9 +610,14 @@ main(int argc, char** argv)
 
     Mat trainX, trainY;
     Mat testX, testY;
-    readData(trainX, trainY, "mnist/train-images-idx3-ubyte", "mnist/train-labels-idx1-ubyte", 60000);
-    readData(testX, testY, "mnist/t10k-images-idx3-ubyte", "mnist/t10k-labels-idx1-ubyte", 10000);
-
+    int ret1, ret2;
+    ret1 = readData(trainX, trainY, "mnist/train-images-idx3-ubyte", "mnist/train-labels-idx1-ubyte", 60000);
+    ret2 = readData(testX, testY, "mnist/t10k-images-idx3-ubyte", "mnist/t10k-labels-idx1-ubyte", 10000);
+    if((ret1 < 0) || (ret2 < 0))
+    {
+      cout << "ERR: Opening files, exiting\n";
+      exit(-1);
+    }
     // Just for testing the algorithm, you can enable the following lines, 
     // It just use the first 500 training samples, for accelerate the calculation.
     // However, mini training sample size leads to lower test accuracy.
